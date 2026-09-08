@@ -5,9 +5,11 @@ wing box. Define an airfoil, wing geometry, spar positions, laminate layups,
 material properties and loads, then inspect stiffness, mass, deflection, twist,
 shear flow and ply-level stress results.
 
-> **Suggested GitHub repository description:** Browser-based preliminary
-> structural analysis of straight composite wing boxes using airfoil geometry,
-> laminate layups, material allowables and applied loads.
+## Live demo
+
+GitHub Pages is enabled for this repo.
+
+**[Try it live →](https://shubham-aero.github.io/composite-wingbox-analyzer/)**
 
 ## What it does
 
@@ -40,7 +42,7 @@ fittings, delamination, through-thickness stress, fatigue, damage progression,
 local pressure bending, large-deflection behaviour or aeroelastic stability.
 See [MODEL.md](MODEL.md) for the equations, conventions and full limitations.
 
-The default carbon/epoxy properties and loads are illustrative. Replace them
+The initial carbon/epoxy properties and loads are illustrative. Replace them
 with verified material data, design allowables and applicable load cases before
 using the results for an engineering decision.
 
@@ -65,18 +67,6 @@ npx serve dist
 
 Opening `dist/index.html` directly as a `file://` URL may prevent module loading
 in some browsers, so an HTTP server is recommended.
-
-## Publish with GitHub Pages
-
-The repository includes a GitHub Actions workflow that publishes `dist/` as a
-static site.
-
-1. Create a new GitHub repository and upload the contents of this package.
-2. In the repository, open **Settings → Pages**.
-3. Under **Build and deployment**, set **Source** to **GitHub Actions**.
-4. Push to the `main` branch, or run the workflow manually from **Actions**.
-
-The workflow will display the deployed URL when it finishes.
 
 ## Verify the calculations
 
@@ -122,9 +112,3 @@ from Google Fonts; system fonts are used if they cannot be loaded.
 
 Input state is not persisted across page reloads. Use **Export results** to save
 the current configuration and calculations.
-
-## Licence
-
-No software licence has been selected for this package. Add an appropriate
-`LICENSE` file before granting others permission to reuse or redistribute the
-code.
