@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#11282d">
+  <meta name="description" content="Explore a composite straight wing: import an airfoil, define skins and spars, edit ply stacks and loads, and calculate bending, twist and ply stresses.">
+  <title>Composite WingBox Analyzer</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">W<span>²</span></span><div><h1>Composite WingBox Analyzer</h1><p>Laminate beam structural analysis</p></div></div>
+    <div class="header-actions"><span class="model-tag">Preliminary sizing</span><button id="export-results" class="button secondary">Export results</button></div>
+  </header>
+  <main class="workspace">
+    <aside class="inputs" aria-label="Wing model inputs">
+      <div class="input-heading"><h2>Define your wing</h2><span id="input-state">Live calculation</span></div>
+      <nav class="input-tabs" role="tablist" aria-label="Input groups">
+        <button role="tab" id="tab-geometry" aria-controls="input-content" aria-selected="true" data-tab="geometry">Geometry</button>
+        <button role="tab" id="tab-layup" aria-controls="input-content" aria-selected="false" tabindex="-1" data-tab="layup">Layup</button>
+        <button role="tab" id="tab-material" aria-controls="input-content" aria-selected="false" tabindex="-1" data-tab="material">Material</button>
+        <button role="tab" id="tab-loads" aria-controls="input-content" aria-selected="false" tabindex="-1" data-tab="loads">Loads</button>
+      </nav>
+      <div id="input-content" role="tabpanel" aria-labelledby="tab-geometry"></div>
+      <div class="input-footer">Straight, constant-chord wing · Fixed root<br>0° fibres run along the span.</div>
+    </aside>
+    <section class="results" aria-label="Structural analysis results">
+      <div id="error" role="alert" class="error-box" hidden></div>
+      <div class="scope-note"><strong>Modelled structure:</strong> upper and lower box skins, two webs and four spar caps. The box follows the airfoil between the spars. Outer fairings, ribs and joints are excluded.</div>
+      <div class="metric-grid" id="metrics" aria-live="polite"></div>
+      <div class="visual-grid">
+        <section class="panel wing-panel">
+          <div class="panel-heading"><div><h2>Wing geometry</h2><p id="wing-caption"></p></div><span class="pill">One half-wing</span></div>
+          <div class="viewer"><canvas id="wing-canvas" aria-label="Rotatable three-dimensional view of the undeformed and deflected wing box">3D wing geometry</canvas><div class="viewer-legend"><span><i class="key undeformed"></i>Original</span><span><i class="key deformed"></i>Deflected</span></div><div class="viewer-hint">Drag to rotate · Scroll to zoom</div></div>
+          <div class="viewer-controls"><label for="deform-scale">Deformation scale <output id="scale-value">5×</output></label><input type="range" id="deform-scale" min="1" max="30" step="1" value="5"><button id="reset-view" class="text-button">Reset view</button></div>
+        </section>
+        <section class="panel section-panel">
+          <div class="panel-heading"><div><h2>Airfoil section</h2><p id="section-caption">Wall midlines and spar caps</p></div></div>
+          <div id="section-viz"></div>
+          <div class="section-legend"><span><i class="key deformed"></i>Box wall</span><span><i class="key cap"></i>Cap</span><span>× Shear centre</span></div>
+          <dl id="section-values" class="properties"></dl>
+        </section>
+      </div>
+      <div class="plot-grid">
+        <section class="panel plot-panel"><div class="panel-heading"><h2>Response along span</h2><select id="response-choice" aria-label="Response chart quantity"><option value="deflection">Vertical deflection</option><option value="twist">Twist</option><option value="lateral">Chordwise deflection</option><option value="FI">Maximum-stress index</option></select></div><div id="response-chart" class="chart"></div></section>
+        <section class="panel plot-panel"><div class="panel-heading"><h2>Internal loads</h2><select id="load-choice" aria-label="Internal load chart quantity"><option value="M">Bending moment</option><option value="V">Shear force</option><option value="T">Torque about shear centre</option><option value="w">Distributed force</option></select></div><div id="load-chart" class="chart"></div></section>
+      </div>
+      <section class="panel stress-panel">
+        <div class="panel-heading stress-heading"><div><h2>Ply stress inspection</h2><p>Material axes · tension positive · maximum-stress criterion</p></div><label class="station-label" for="station">Span station <output id="station-value">0.00 m</output></label><input id="station" type="range" min="0" max="100" step="0.5" value="0" aria-label="Inspect span position"></div>
+        <div id="critical-line" class="critical-line"></div>
+        <div class="stress-toolbar"><label for="stress-region">Component</label><select id="stress-region"><option value="upper">Upper skin</option><option value="lower">Lower skin</option><option value="front">Front web</option><option value="rear">Rear web</option><option value="caps">Spar caps</option></select><span id="station-loads"></span></div>
+        <div class="table-scroll"><table><caption class="sr-only">Worst location within the selected component for each physical ply</caption><thead><tr><th>Ply</th><th>Angle</th><th>σ₁ <span>MPa</span></th><th>σ₂ <span>MPa</span></th><th>τ₁₂ <span>MPa</span></th><th>Index</th><th>Governing mode</th></tr></thead><tbody id="ply-rows"></tbody></table></div>
+        <p class="table-note">Each row reports the location with the highest index for that ply within the selected component. Cap results cover all four caps. At a point load, the station is evaluated on its inboard side. Global peaks are sampled estimates.</p>
+      </section>
+      <div id="warnings" aria-live="polite"></div>
+      <details class="panel method"><summary>Model, assumptions and validation</summary><div class="method-content">
+        <p><strong>This is a linear beam and laminate sizing tool.</strong> It is not shell finite-element analysis or a flightworthiness assessment. An index below 1 only means the supplied in-plane ply stress allowables have not been reached in this model. Inputs last until the page is reloaded; export results to retain the input configuration and calculations.</p>
+        <div class="method-columns"><div><h3>What is calculated</h3><ul><li>Classical laminate A, B and D matrices, with plane-stress lamina properties.</li><li>Symmetric, balanced laminate membrane stiffness. Unsymmetric or extension–shear coupled stacks are rejected.</li><li>Thin-wall wing-box bending with an elastic centroid and coupled vertical/chordwise curvatures.</li><li>Single-cell shear flow, shear centre and Bredt–Batho torsional stiffness.</li><li>Cantilever bending plus shear deflection, twist and first-ply maximum-stress indices.</li></ul></div><div><h3>What you must account for separately</h3><ul><li>Skin/web buckling, local pressure bending and cross-section distortion.</li><li>Ribs, outer fairings, adhesive, root fittings, cap load transfer and joints.</li><li>Delamination, through-thickness stresses, damage, fatigue and environmental knockdowns.</li><li>Large deflections, flutter, divergence and other aeroelastic effects.</li><li>True shell offsets: input airfoil and box contours are treated as wall midlines; caps are axial booms on those midlines.</li></ul></div></div>
+        <h3>Loads and signs</h3><p>Forces are prescribed, not predicted aerodynamically. Distributed force is the total on <strong>one modelled half-wing</strong>, even when a full wingspan is entered. Positive force acts upwards. Positive torque and twist raise the trailing edge. Point loads have independent span and chord positions. The multiplier scales all loads, including enabled self-weight. The root is fully clamped. Angle 90° follows the clockwise box-wall direction in the section view.</p>
+        <h3>Key relations</h3><div class="equations">Aᵢⱼ = Σ Q̄ᵢⱼ tₖ &nbsp; · &nbsp; axial wall stiffness = A₁₁ − A₁₂²/A₂₂<br>GJ = 4A² / ∮(ds/A₆₆) &nbsp; · &nbsp; q<sub>torsion</sub> = T / (signed 2A)<br>Index = max(|σ₁|/X, |σ₂|/Y, |τ₁₂|/S) &nbsp; · &nbsp; proportional reserve = 1 / maximum index</div>
+        <p>Strength X and Y select their tensile or compressive allowable according to stress sign. The reserve applies only to proportional scaling of the complete current load case. It is not a structural safety factor. Material defaults are illustrative carbon/epoxy values, not a certified material dataset.</p>
+        <h3>Laminate matrices</h3><label for="matrix-region" class="sr-only">Laminate matrix component</label><select id="matrix-region"><option value="upper">Upper skin</option><option value="lower">Lower skin</option><option value="front">Front web</option><option value="rear">Rear web</option><option value="caps">Spar caps</option></select><div id="matrices"></div>
+        <h3>Verification and references</h3><p>The calculation uses 160 span intervals plus point-load locations, with 64 panels per skin and 24 per web. The included numerical checks cover isotropic laminate limits, laminate symmetry, rectangular-box stiffness, shear-flow equilibrium, uniform/point-load beam solutions, pure torsion, load scaling and coordinate formats. No experimental wing validation has been performed.</p>
+        <p><a href="https://ntrs.nasa.gov/citations/19950009349" target="_blank" rel="noreferrer">NASA RP-1351: Basic Mechanics of Laminated Composite Plates</a><br><a href="https://eng.libretexts.org/Under_Construction/Aerospace_Structures_(Johnson)/03%3A_Elements_of_a_thin-walled_bar_theory" target="_blank" rel="noreferrer">Aerospace Structures: Elements of a Thin-walled Bar Theory</a></p>
+      </div></details>
+      <footer class="results-footer">All dimensions and loads use SI units. All mass results refer to the modelled wing box only.</footer>
+    </section>
+  </main>
+  <div id="toast" class="toast" role="status" hidden></div>
+  <script type="module" src="./app.mjs"></script>
+</body>
+</html>
